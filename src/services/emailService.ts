@@ -1,4 +1,13 @@
 
+import { google } from 'googleapis';
+import nodemailer from 'nodemailer';
+
+// Your credentials from Google Developer Console
+const CLIENT_ID = '546225852309-k62e8e4mio4l1lubmbprmcsdnehf7lcb.apps.googleusercontent.com';
+const CLIENT_SECRET = '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';
+const REDIRECT_URI = 'https://developers.google.com/oauthplayground';
+const REFRESH_TOKEN = '4/0Ab_5qlkhl28eZO5Tm2cn6lCultO3xWWaaWy3c8aOULn8Jw0tbEsfrnMdVUK2wRq7zdjFCg';
+
 export interface EmailData {
   to: string;
   subject: string;
@@ -9,36 +18,78 @@ export interface EmailData {
   }>;
 }
 
-// This is a browser-compatible version of the email service
-// In a real application, this would call a backend API endpoint
+// Configure OAuth2 client
+const oAuth2Client = new google.auth.OAuth2(CLIENT_ID, CLIENT_SECRET, REDIRECT_URI);
+oAuth2Client.setCredentials({
+  refresh_token: REFRESH_TOKEN
+});
+
 export const sendEmail = async (emailData: EmailData): Promise<{ success: boolean; message: string }> => {
   try {
-    // In a production environment, we would make an API call to a server endpoint
-    // that handles the actual email sending using nodemailer and googleapis
-    console.log('Sending email with data:', emailData);
+    const accessToken = await oAuth2Client.getAccessToken();
     
-    // Simulate network conditions - occasionally "fail" to test offline functionality
-    if (Math.random() < 0.2) {
-      throw new Error('Simulated network error');
-    }
+    const transporter = nodemailer.createTransport({
+      service: 'gmail',
+      auth: {
+        type: 'OAuth2',
+        user: 'mkhontonationalunion@gmail.com',
+        clientId: CLIENT_ID,
+        clientSecret: CLIENT_SECRET,
+        refreshToken: REFRESH_TOKEN,
+        accessToken: accessToken?.token || ''
+      }
+    });
     
-    // This is just a mock implementation for the client side
-    // In reality, we'd send this data to a backend API
+    const mailOptions = {
+      from: 'Umkhonto National Union <mkhontonationalunion@gmail.com>',
+      to: emailData.to,
+      subject: emailData.subject,
+      text: emailData.body,
+      attachments: emailData.attachments?.map(file => ({
+        filename: file.filename,
+        content: file.content
+      }))
+    };
+    
+    await transporter.sendMail(mailOptions);
+    
     return {
       success: true,
-      message: 'Email sent successfully to MNU!',
+      message: 'Email sent successfully to MNU!!'
     };
   } catch (error: any) {
     console.error('Email sending error:', error);
+    
+    // Save for offline submission in case of failure
+    if (typeof window !== 'undefined') { 
+      try {
+        import('@/services/pendingSubmissions').then(({ savePendingSubmission }) => {
+          // Extract form data from email body to save for later
+          const formData = {
+            // Basic placeholder data since we can't parse the email body reliably
+            ...JSON.parse(localStorage.getItem('lastSubmittedForm') || '{}')
+          };
+          savePendingSubmission(formData);
+        });
+      } catch (e) {
+        console.error('Failed to save pending submission:', e);
+      }
+    }
+    
     return {
       success: false,
-      message: `Error sending email: ${error.message}`,
+      message: `Error sending email: ${error.message}`
     };
   }
 };
 
 // Format affiliation form data into a readable email body
 export const formatAffiliationEmailBody = (formData: any): string => {
+  // Store form data in localStorage for potential recovery
+  if (typeof window !== 'undefined') {
+    localStorage.setItem('lastSubmittedForm', JSON.stringify(formData));
+  }
+  
   return `
 New MNU Affiliation Form Submission:
 ====================================

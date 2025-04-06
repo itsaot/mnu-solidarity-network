@@ -1,3 +1,4 @@
+
 import { google } from 'googleapis';
 import nodemailer from 'nodemailer';
 
@@ -41,7 +42,7 @@ export const sendEmail = async (emailData: EmailData): Promise<{ success: boolea
     });
 
     const mailOptions = {
-      from: 'Umkhonto National Union <mkhontonationalunion@gmail.com>', // change to your name and email
+      from: 'Umkhonto National Union <mkhontonationalunion@gmail.com>',
       to: emailData.to,
       subject: emailData.subject,
       text: emailData.body,
@@ -63,4 +64,31 @@ export const sendEmail = async (emailData: EmailData): Promise<{ success: boolea
       message: `Error sending email: ${error.message}`,
     };
   }
+};
+
+// Format affiliation form data into a readable email body
+export const formatAffiliationEmailBody = (formData: any): string => {
+  return `
+New MNU Affiliation Form Submission:
+====================================
+
+Personal Information:
+- Name: ${formData.name}
+- Surname: ${formData.surname}
+- Age: ${formData.age}
+- Gender: ${formData.gender}
+- Sector: ${formData.sector}
+- Disability: ${formData.disability}
+
+Location:
+- Nationality: ${formData.nationality}
+- Province: ${formData.province}
+- Municipality: ${formData.municipality}
+- Ward: ${formData.ward}
+
+Qualifications:
+${formData.qualifications || 'None provided'}
+
+Submission Date: ${new Date().toLocaleString()}
+`;
 };

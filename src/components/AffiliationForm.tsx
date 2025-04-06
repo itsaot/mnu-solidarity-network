@@ -9,7 +9,10 @@ import { Textarea } from "@/components/ui/textarea";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { toast } from "sonner";
+import { toast } from "@/hooks/use-toast";
+import { sendEmail, formatAffiliationEmailBody } from "@/services/emailService";
+import { savePendingSubmission } from "@/services/pendingSubmissions";
+import PendingSubmissionsManager from "@/components/PendingSubmissionsManager";
 
 const formSchema = z.object({
   name: z.string().min(2, { message: "Name must be at least 2 characters" }),
@@ -49,25 +52,44 @@ const AffiliationForm = () => {
   
   const onSubmit = async (data: FormValues) => {
     try {
-      // In a real implementation, this would send the data to a server
-      console.log("Form data:", data);
+      // Format the data for email
+      const emailData = {
+        to: 'mkhontonationalunion@gmail.com',
+        subject: 'New MNU Affiliation Form Submission',
+        body: formatAffiliationEmailBody(data)
+      };
       
-      // Simulate sending email
-      toast.loading("Sending your application...", { duration: 2000 });
-      
-      // After 2 seconds, show success message
-      setTimeout(() => {
-        toast.success("Application submitted successfully! We'll contact you soon.", {
-          description: "A copy has been sent to mkhontonationalunion@gmail.com"
-        });
-      }, 2000);
-      
-      form.reset();
-    } catch (error) {
-      toast.error("There was a problem submitting your application", {
-        description: "Please try again or contact us directly."
+      toast({
+        title: "Submitting your application...",
+        description: "Please wait while we process your submission.",
       });
+      
+      const result = await sendEmail(emailData);
+      
+      if (result.success) {
+        toast({
+          title: "Application submitted successfully!",
+          description: "We'll contact you soon. A copy has been sent to mkhontonationalunion@gmail.com",
+        });
+        form.reset();
+      } else {
+        // Save submission for later retry
+        savePendingSubmission(data);
+        toast({
+          variant: "destructive",
+          title: "Could not send your application",
+          description: "Your submission has been saved locally and will be sent automatically when connection is restored.",
+        });
+      }
+    } catch (error) {
+      // Save submission for later retry
+      savePendingSubmission(data);
       console.error("Error submitting form:", error);
+      toast({
+        variant: "destructive",
+        title: "There was a problem submitting your application",
+        description: "Your submission has been saved locally and will be sent automatically when connection is restored.",
+      });
     }
   };
 
@@ -86,6 +108,8 @@ const AffiliationForm = () => {
   return (
     <div className="max-w-2xl mx-auto p-4 md:p-6 bg-white rounded-lg shadow-md animate-fade-in">
       <h2 className="text-2xl font-bold mb-6 text-center">Affiliate with MNU</h2>
+      
+      <PendingSubmissionsManager />
       
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">

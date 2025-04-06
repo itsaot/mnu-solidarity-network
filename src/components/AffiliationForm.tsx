@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
@@ -23,9 +23,9 @@ const formSchema = z.object({
   gender: z.string().min(1, { message: "Please select your gender" }),
   sector: z.string().min(1, { message: "Please select your sector" }),
   disability: z.string().min(1, { message: "Please specify if you have a disability" }),
-  nationality: z.string().min(2, { message: "Nationality must be at least 2 characters" }),
+  nationality: z.string().min(2, { message: "Please select your nationality" }),
   province: z.string().min(2, { message: "Please select your province" }),
-  municipality: z.string().min(2, { message: "Municipality must be at least 2 characters" }),
+  municipality: z.string().min(2, { message: "Please select your municipality" }),
   ward: z.string().min(1, { message: "Ward must be at least 1 character" }),
   qualifications: z.string(),
 });
@@ -33,6 +33,8 @@ const formSchema = z.object({
 type FormValues = z.infer<typeof formSchema>;
 
 const AffiliationForm = () => {
+  const [municipalities, setMunicipalities] = useState<string[]>([]);
+  
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -49,6 +51,19 @@ const AffiliationForm = () => {
       qualifications: "",
     },
   });
+
+  // Watch for province changes to update municipalities
+  const selectedProvince = form.watch("province");
+  
+  useEffect(() => {
+    if (selectedProvince) {
+      // Update municipalities based on selected province
+      setMunicipalities(getMunicipalitiesByProvince(selectedProvince));
+      
+      // Reset municipality selection when province changes
+      form.setValue("municipality", "");
+    }
+  }, [selectedProvince, form]);
   
   const onSubmit = async (data: FormValues) => {
     try {
@@ -105,6 +120,114 @@ const AffiliationForm = () => {
     "Western Cape"
   ];
 
+  const nationalities = [
+    "South African",
+    "Afghan",
+    "Albanian",
+    "Algerian",
+    "Angolan",
+    "Argentinian",
+    "Australian",
+    "Austrian",
+    "Bangladeshi",
+    "Belgian",
+    "Botswanan",
+    "Brazilian",
+    "British",
+    "Burundian",
+    "Cameroonian",
+    "Canadian",
+    "Chinese",
+    "Colombian",
+    "Congolese",
+    "Egyptian",
+    "Ethiopian",
+    "French",
+    "German",
+    "Ghanaian",
+    "Greek",
+    "Indian",
+    "Indonesian",
+    "Iranian",
+    "Irish",
+    "Italian",
+    "Jamaican",
+    "Japanese",
+    "Kenyan",
+    "Lesotho",
+    "Liberian",
+    "Malawian",
+    "Malaysian",
+    "Mexican",
+    "Moroccan",
+    "Mozambican",
+    "Namibian",
+    "Nigerian",
+    "Pakistani",
+    "Portuguese",
+    "Russian",
+    "Rwandan",
+    "Saudi",
+    "Senegalese",
+    "Somalian",
+    "Spanish",
+    "Sudanese",
+    "Swazi",
+    "Swedish",
+    "Swiss",
+    "Tanzanian",
+    "Thai",
+    "Tunisian",
+    "Turkish",
+    "Ugandan",
+    "Ukrainian",
+    "American",
+    "Venezuelan",
+    "Vietnamese",
+    "Zambian",
+    "Zimbabwean",
+    "Other"
+  ];
+
+  // Function to get municipalities based on province
+  const getMunicipalitiesByProvince = (province: string): string[] => {
+    const municipalitiesMap: { [key: string]: string[] } = {
+      "Eastern Cape": [
+        "Buffalo City", "Nelson Mandela Bay", "Amathole", "Chris Hani", 
+        "Joe Gqabi", "OR Tambo", "Sarah Baartman", "Alfred Nzo"
+      ],
+      "Free State": [
+        "Mangaung", "Fezile Dabi", "Lejweleputswa", "Thabo Mofutsanyana", "Xhariep"
+      ],
+      "Gauteng": [
+        "City of Johannesburg", "City of Tshwane", "Ekurhuleni", 
+        "Sedibeng", "West Rand"
+      ],
+      "KwaZulu-Natal": [
+        "eThekwini", "Amajuba", "Harry Gwala", "iLembe", "King Cetshwayo", 
+        "Ugu", "uMgungundlovu", "uMkhanyakude", "uMzinyathi", "uThukela", "Zululand"
+      ],
+      "Limpopo": [
+        "Capricorn", "Mopani", "Sekhukhune", "Vhembe", "Waterberg"
+      ],
+      "Mpumalanga": [
+        "Ehlanzeni", "Gert Sibande", "Nkangala"
+      ],
+      "North West": [
+        "Bojanala Platinum", "Dr Kenneth Kaunda", "Dr Ruth Segomotsi Mompati", "Ngaka Modiri Molema"
+      ],
+      "Northern Cape": [
+        "Frances Baard", "John Taolo Gaetsewe", "Namakwa", "Pixley ka Seme", "ZF Mgcawu"
+      ],
+      "Western Cape": [
+        "City of Cape Town", "Cape Winelands", "Central Karoo", "Garden Route", 
+        "Overberg", "West Coast"
+      ]
+    };
+    
+    return municipalitiesMap[province] || [];
+  };
+
   return (
     <div className="max-w-2xl mx-auto p-4 md:p-6 bg-white rounded-lg shadow-md animate-fade-in">
       <h2 className="text-2xl font-bold mb-6 text-center">Affiliate with MNU</h2>
@@ -114,6 +237,7 @@ const AffiliationForm = () => {
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Name and surname fields */}
             <FormField
               control={form.control}
               name="name"
@@ -144,6 +268,7 @@ const AffiliationForm = () => {
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Age and gender fields */}
             <FormField
               control={form.control}
               name="age"
@@ -193,6 +318,7 @@ const AffiliationForm = () => {
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Sector and disability fields */}
             <FormField
               control={form.control}
               name="sector"
@@ -252,21 +378,32 @@ const AffiliationForm = () => {
             />
           </div>
           
+          {/* Nationality field - converted to dropdown */}
           <FormField
             control={form.control}
             name="nationality"
             render={({ field }) => (
               <FormItem>
                 <FormLabel>Nationality</FormLabel>
-                <FormControl>
-                  <Input placeholder="Your nationality" {...field} />
-                </FormControl>
+                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select nationality" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {nationalities.map((nationality) => (
+                      <SelectItem key={nationality} value={nationality}>{nationality}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
                 <FormMessage />
               </FormItem>
             )}
           />
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Province field */}
             <FormField
               control={form.control}
               name="province"
@@ -290,21 +427,42 @@ const AffiliationForm = () => {
               )}
             />
             
+            {/* Municipality field - converted to dropdown */}
             <FormField
               control={form.control}
               name="municipality"
               render={({ field }) => (
                 <FormItem>
                   <FormLabel>Local Municipality</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Your local municipality" {...field} />
-                  </FormControl>
+                  <Select 
+                    onValueChange={field.onChange} 
+                    value={field.value}
+                    disabled={municipalities.length === 0}
+                  >
+                    <FormControl>
+                      <SelectTrigger>
+                        <SelectValue placeholder={
+                          selectedProvince 
+                            ? "Select municipality" 
+                            : "Select province first"
+                        } />
+                      </SelectTrigger>
+                    </FormControl>
+                    <SelectContent>
+                      {municipalities.map((municipality) => (
+                        <SelectItem key={municipality} value={municipality}>
+                          {municipality}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                   <FormMessage />
                 </FormItem>
               )}
             />
           </div>
           
+          {/* Ward field */}
           <FormField
             control={form.control}
             name="ward"
@@ -319,6 +477,7 @@ const AffiliationForm = () => {
             )}
           />
           
+          {/* Qualifications field */}
           <FormField
             control={form.control}
             name="qualifications"
@@ -337,6 +496,7 @@ const AffiliationForm = () => {
             )}
           />
           
+          {/* Submit button */}
           <div className="text-center">
             <Button 
               type="submit" 

@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -546,19 +547,20 @@ const AffiliationForm = () => {
                               ? "Select municipality" 
                               : "Select province first"
                           } />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {municipalities.map((municipality) => (
-                        <SelectItem key={municipality} value={municipality}>
-                          {municipality}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {municipalities.map((municipality) => (
+                          <SelectItem key={municipality} value={municipality}>
+                            {municipality}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
             </div>
             
             {/* Ward field */}

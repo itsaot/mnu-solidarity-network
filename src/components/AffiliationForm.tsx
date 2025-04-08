@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useForm } from "react-hook-form";
 import { z } from "zod";
@@ -27,12 +26,18 @@ const formSchema = z.object({
   municipality: z.string().min(2, { message: "Please select your municipality" }),
   ward: z.string().min(1, { message: "Ward must be at least 1 character" }),
   qualifications: z.string().min(1, { message: "Please select your highest qualification" }),
+  // Document fields - optional since some users may not have documents ready
+  idDocument: z.any().optional(),
+  proofOfAddress: z.any().optional(),
+  cvDocument: z.any().optional(),
+  otherDocument: z.any().optional(),
 });
 
 type FormValues = z.infer<typeof formSchema>;
 
 const AffiliationForm = () => {
   const [municipalities, setMunicipalities] = useState<string[]>([]);
+  const [documents, setDocuments] = useState<{[key: string]: {name: string; data: string}}>({});
   
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -64,13 +69,55 @@ const AffiliationForm = () => {
     }
   }, [selectedProvince, form]);
   
+  // Handle file uploads
+  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>, documentType: string) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    
+    // Check file size (max 3MB)
+    if (file.size > 3 * 1024 * 1024) {
+      toast({
+        variant: "destructive",
+        title: "File too large",
+        description: "Please upload a file smaller than 3MB",
+      });
+      return;
+    }
+    
+    // Convert file to base64 for email attachments
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const base64Data = e.target?.result as string;
+      setDocuments(prev => ({
+        ...prev,
+        [documentType]: {
+          name: file.name,
+          data: base64Data.split(',')[1] // Remove the data:application/pdf;base64, part
+        }
+      }));
+      
+      toast({
+        title: "Document uploaded",
+        description: `${file.name} has been added to your application`,
+      });
+    };
+    reader.readAsDataURL(file);
+  };
+  
   const onSubmit = async (data: FormValues) => {
     try {
+      // Get attachments from the documents state
+      const attachments = Object.entries(documents).map(([type, doc]) => ({
+        filename: doc.name,
+        content: doc.data
+      }));
+      
       // Format the data for email
       const emailData = {
         to: 'mkhontonationalunion@gmail.com',
         subject: 'New MNU Affiliation Form Submission',
-        body: formatAffiliationEmailBody(data)
+        body: formatAffiliationEmailBody(data),
+        attachments: attachments.length > 0 ? attachments : undefined
       };
       
       toast({
@@ -87,7 +134,7 @@ const AffiliationForm = () => {
         });
       } else {
         // Save submission for later retry
-        savePendingSubmission(data);
+        savePendingSubmission({...data, documents});
         toast({
           variant: "destructive",
           title: "Could not open email client",
@@ -96,7 +143,7 @@ const AffiliationForm = () => {
       }
     } catch (error) {
       // Save submission for later retry
-      savePendingSubmission(data);
+      savePendingSubmission({...data, documents});
       console.error("Error submitting form:", error);
       toast({
         variant: "destructive",
@@ -248,193 +295,205 @@ const AffiliationForm = () => {
       
       <Form {...form}>
         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Name and surname fields */}
-            <FormField
-              control={form.control}
-              name="name"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Name</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Your name" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+          {/* Personal Information Section */}
+          <div className="bg-gray-50 p-4 rounded-md border border-gray-200 mb-6">
+            <h3 className="text-lg font-medium mb-4 text-mnu-green">Personal Information</h3>
             
-            <FormField
-              control={form.control}
-              name="surname"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Surname</FormLabel>
-                  <FormControl>
-                    <Input placeholder="Your surname" {...field} />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {/* Name and surname fields */}
+              <FormField
+                control={form.control}
+                name="name"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Name</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Your name" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="surname"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Surname</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Your surname" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+              {/* ID Number and gender fields */}
+              <FormField
+                control={form.control}
+                name="idNumber"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>South African ID Number</FormLabel>
+                    <FormControl>
+                      <Input 
+                        placeholder="13-digit ID number" 
+                        maxLength={13} 
+                        {...field} 
+                      />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="gender"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Gender</FormLabel>
+                    <FormControl>
+                      <RadioGroup 
+                        onValueChange={field.onChange} 
+                        value={field.value}
+                        className="flex flex-col space-y-1 mt-2"
+                      >
+                        <div className="flex items-center space-x-6">
+                          <div className="flex items-center space-x-2">
+                            <RadioGroupItem value="Male" id="male" />
+                            <FormLabel htmlFor="male" className="font-normal">Male</FormLabel>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <RadioGroupItem value="Female" id="female" />
+                            <FormLabel htmlFor="female" className="font-normal">Female</FormLabel>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <RadioGroupItem value="Other" id="other" />
+                            <FormLabel htmlFor="other" className="font-normal">Other</FormLabel>
+                          </div>
+                        </div>
+                      </RadioGroup>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+            
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+              {/* Sector and disability fields */}
+              <FormField
+                control={form.control}
+                name="sector"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Sector</FormLabel>
+                    <FormControl>
+                      <RadioGroup 
+                        onValueChange={field.onChange} 
+                        value={field.value}
+                        className="flex flex-col space-y-1 mt-2"
+                      >
+                        <div className="flex items-center space-x-6">
+                          <div className="flex items-center space-x-2">
+                            <RadioGroupItem value="Government" id="government" />
+                            <FormLabel htmlFor="government" className="font-normal">Government</FormLabel>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <RadioGroupItem value="Private" id="private" />
+                            <FormLabel htmlFor="private" className="font-normal">Private</FormLabel>
+                          </div>
+                        </div>
+                      </RadioGroup>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              <FormField
+                control={form.control}
+                name="disability"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Do you have a disability?</FormLabel>
+                    <FormControl>
+                      <RadioGroup 
+                        onValueChange={field.onChange} 
+                        value={field.value}
+                        className="flex flex-col space-y-1 mt-2"
+                      >
+                        <div className="flex items-center space-x-6">
+                          <div className="flex items-center space-x-2">
+                            <RadioGroupItem value="Yes" id="yes-disability" />
+                            <FormLabel htmlFor="yes-disability" className="font-normal">Yes</FormLabel>
+                          </div>
+                          <div className="flex items-center space-x-2">
+                            <RadioGroupItem value="No" id="no-disability" />
+                            <FormLabel htmlFor="no-disability" className="font-normal">No</FormLabel>
+                          </div>
+                        </div>
+                      </RadioGroup>
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+            
+            {/* Qualifications field - dropdown */}
+            <div className="mt-4">
+              <FormField
+                control={form.control}
+                name="qualifications"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Highest Qualification</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select highest qualification" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {qualificationOptions.map((qualification) => (
+                          <SelectItem key={qualification} value={qualification}>
+                            {qualification}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* ID Number and gender fields */}
-            <FormField
-              control={form.control}
-              name="idNumber"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>South African ID Number</FormLabel>
-                  <FormControl>
-                    <Input 
-                      placeholder="13-digit ID number" 
-                      maxLength={13} 
-                      {...field} 
-                    />
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+          {/* Location Information Section */}
+          <div className="bg-gray-50 p-4 rounded-md border border-gray-200 mb-6">
+            <h3 className="text-lg font-medium mb-4 text-mnu-green">Location Information</h3>
             
+            {/* Nationality field - dropdown */}
             <FormField
               control={form.control}
-              name="gender"
+              name="nationality"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Gender</FormLabel>
-                  <FormControl>
-                    <RadioGroup 
-                      onValueChange={field.onChange} 
-                      value={field.value}
-                      className="flex flex-col space-y-1 mt-2"
-                    >
-                      <div className="flex items-center space-x-6">
-                        <div className="flex items-center space-x-2">
-                          <RadioGroupItem value="Male" id="male" />
-                          <FormLabel htmlFor="male" className="font-normal">Male</FormLabel>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <RadioGroupItem value="Female" id="female" />
-                          <FormLabel htmlFor="female" className="font-normal">Female</FormLabel>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <RadioGroupItem value="Other" id="other" />
-                          <FormLabel htmlFor="other" className="font-normal">Other</FormLabel>
-                        </div>
-                      </div>
-                    </RadioGroup>
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Sector and disability fields */}
-            <FormField
-              control={form.control}
-              name="sector"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Sector</FormLabel>
-                  <FormControl>
-                    <RadioGroup 
-                      onValueChange={field.onChange} 
-                      value={field.value}
-                      className="flex flex-col space-y-1 mt-2"
-                    >
-                      <div className="flex items-center space-x-6">
-                        <div className="flex items-center space-x-2">
-                          <RadioGroupItem value="Government" id="government" />
-                          <FormLabel htmlFor="government" className="font-normal">Government</FormLabel>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <RadioGroupItem value="Private" id="private" />
-                          <FormLabel htmlFor="private" className="font-normal">Private</FormLabel>
-                        </div>
-                      </div>
-                    </RadioGroup>
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-            
-            <FormField
-              control={form.control}
-              name="disability"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Do you have a disability?</FormLabel>
-                  <FormControl>
-                    <RadioGroup 
-                      onValueChange={field.onChange} 
-                      value={field.value}
-                      className="flex flex-col space-y-1 mt-2"
-                    >
-                      <div className="flex items-center space-x-6">
-                        <div className="flex items-center space-x-2">
-                          <RadioGroupItem value="Yes" id="yes-disability" />
-                          <FormLabel htmlFor="yes-disability" className="font-normal">Yes</FormLabel>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <RadioGroupItem value="No" id="no-disability" />
-                          <FormLabel htmlFor="no-disability" className="font-normal">No</FormLabel>
-                        </div>
-                      </div>
-                    </RadioGroup>
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
-          </div>
-          
-          {/* Nationality field - dropdown */}
-          <FormField
-            control={form.control}
-            name="nationality"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Nationality</FormLabel>
-                <Select onValueChange={field.onChange} defaultValue={field.value}>
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select nationality" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {nationalities.map((nationality) => (
-                      <SelectItem key={nationality} value={nationality}>{nationality}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Province field */}
-            <FormField
-              control={form.control}
-              name="province"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Province</FormLabel>
-                  <Select onValueChange={field.onChange} value={field.value}>
+                  <FormLabel>Nationality</FormLabel>
+                  <Select onValueChange={field.onChange} defaultValue={field.value}>
                     <FormControl>
                       <SelectTrigger>
-                        <SelectValue placeholder="Select province" />
+                        <SelectValue placeholder="Select nationality" />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {provinces.map((province) => (
-                        <SelectItem key={province} value={province}>{province}</SelectItem>
+                      {nationalities.map((nationality) => (
+                        <SelectItem key={nationality} value={nationality}>{nationality}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
@@ -443,25 +502,50 @@ const AffiliationForm = () => {
               )}
             />
             
-            {/* Municipality field - dropdown */}
-            <FormField
-              control={form.control}
-              name="municipality"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Local Municipality</FormLabel>
-                  <Select 
-                    onValueChange={field.onChange} 
-                    value={field.value}
-                    disabled={municipalities.length === 0}
-                  >
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder={
-                          selectedProvince 
-                            ? "Select municipality" 
-                            : "Select province first"
-                        } />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-4">
+              {/* Province field */}
+              <FormField
+                control={form.control}
+                name="province"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Province</FormLabel>
+                    <Select onValueChange={field.onChange} value={field.value}>
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select province" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {provinces.map((province) => (
+                          <SelectItem key={province} value={province}>{province}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              
+              {/* Municipality field - dropdown */}
+              <FormField
+                control={form.control}
+                name="municipality"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Local Municipality</FormLabel>
+                    <Select 
+                      onValueChange={field.onChange} 
+                      value={field.value}
+                      disabled={municipalities.length === 0}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder={
+                            selectedProvince 
+                              ? "Select municipality" 
+                              : "Select province first"
+                          } />
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
@@ -475,49 +559,108 @@ const AffiliationForm = () => {
                   <FormMessage />
                 </FormItem>
               )}
-            />
+            </div>
+            
+            {/* Ward field */}
+            <div className="mt-4">
+              <FormField
+                control={form.control}
+                name="ward"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Ward</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Your ward number" {...field} />
+                    </FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
           </div>
           
-          {/* Ward field */}
-          <FormField
-            control={form.control}
-            name="ward"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Ward</FormLabel>
-                <FormControl>
-                  <Input placeholder="Your ward number" {...field} />
-                </FormControl>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
-          
-          {/* Qualifications field - converted to dropdown */}
-          <FormField
-            control={form.control}
-            name="qualifications"
-            render={({ field }) => (
-              <FormItem>
-                <FormLabel>Highest Qualification</FormLabel>
-                <Select onValueChange={field.onChange} value={field.value}>
-                  <FormControl>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select highest qualification" />
-                    </SelectTrigger>
-                  </FormControl>
-                  <SelectContent>
-                    {qualificationOptions.map((qualification) => (
-                      <SelectItem key={qualification} value={qualification}>
-                        {qualification}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-                <FormMessage />
-              </FormItem>
-            )}
-          />
+          {/* Documents Upload Section */}
+          <div className="bg-gray-50 p-4 rounded-md border border-gray-200 mb-6">
+            <h3 className="text-lg font-medium mb-4 text-mnu-green">Supporting Documents</h3>
+            <p className="text-sm text-gray-500 mb-4">
+              Please upload any relevant documents to support your application. 
+              All documents will be attached to your email submission.
+            </p>
+            
+            <div className="space-y-4">
+              {/* ID Document Upload */}
+              <div className="border rounded p-4 bg-white">
+                <FormLabel htmlFor="idDocument" className="block mb-2">ID Document</FormLabel>
+                <Input
+                  id="idDocument"
+                  type="file"
+                  accept=".pdf,.jpg,.jpeg,.png"
+                  onChange={(e) => handleFileUpload(e, 'idDocument')}
+                  className="w-full"
+                />
+                {documents.idDocument && (
+                  <p className="text-sm text-green-600 mt-2">
+                    ✓ {documents.idDocument.name} uploaded
+                  </p>
+                )}
+              </div>
+              
+              {/* Proof of Address Upload */}
+              <div className="border rounded p-4 bg-white">
+                <FormLabel htmlFor="proofOfAddress" className="block mb-2">Proof of Address</FormLabel>
+                <Input
+                  id="proofOfAddress"
+                  type="file"
+                  accept=".pdf,.jpg,.jpeg,.png"
+                  onChange={(e) => handleFileUpload(e, 'proofOfAddress')}
+                  className="w-full"
+                />
+                {documents.proofOfAddress && (
+                  <p className="text-sm text-green-600 mt-2">
+                    ✓ {documents.proofOfAddress.name} uploaded
+                  </p>
+                )}
+              </div>
+              
+              {/* CV Document Upload */}
+              <div className="border rounded p-4 bg-white">
+                <FormLabel htmlFor="cvDocument" className="block mb-2">Curriculum Vitae (CV)</FormLabel>
+                <Input
+                  id="cvDocument"
+                  type="file"
+                  accept=".pdf,.doc,.docx"
+                  onChange={(e) => handleFileUpload(e, 'cvDocument')}
+                  className="w-full"
+                />
+                {documents.cvDocument && (
+                  <p className="text-sm text-green-600 mt-2">
+                    ✓ {documents.cvDocument.name} uploaded
+                  </p>
+                )}
+              </div>
+              
+              {/* Other Document Upload */}
+              <div className="border rounded p-4 bg-white">
+                <FormLabel htmlFor="otherDocument" className="block mb-2">Other Supporting Document</FormLabel>
+                <Input
+                  id="otherDocument"
+                  type="file"
+                  accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+                  onChange={(e) => handleFileUpload(e, 'otherDocument')}
+                  className="w-full"
+                />
+                {documents.otherDocument && (
+                  <p className="text-sm text-green-600 mt-2">
+                    ✓ {documents.otherDocument.name} uploaded
+                  </p>
+                )}
+              </div>
+            </div>
+            
+            <p className="text-sm text-amber-600 mt-4">
+              Note: Documents must be less than 3MB each. Supported formats include PDF, JPG, PNG, and DOC.
+            </p>
+          </div>
           
           {/* Submit button */}
           <div className="text-center">

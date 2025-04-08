@@ -22,6 +22,10 @@ const AffiliatePage = () => {
             <p>Note: This form will open your default email application to complete the submission.</p>
             <p className="mt-2">Please review the email content before sending it to MNU leadership.</p>
           </div>
+          <div className="text-center max-w-2xl mx-auto mb-6 text-blue-700 text-sm font-medium animate-fade-in bg-blue-50 p-3 rounded-md border border-blue-200" style={{animationDelay: "0.3s"}}>
+            <p>You can now upload supporting documents with your application!</p>
+            <p className="mt-2">Documents will be saved locally and you'll be reminded to attach them to your email.</p>
+          </div>
           <div className="text-center max-w-2xl mx-auto mb-12 text-green-600 text-sm font-medium animate-fade-in bg-green-50 p-3 rounded-md border border-green-200" style={{animationDelay: "0.3s"}}>
             Your submission will be sent directly to MNU leadership via email at mkhontonationalunion@gmail.com
           </div>

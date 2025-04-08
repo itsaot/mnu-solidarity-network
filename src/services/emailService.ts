@@ -14,16 +14,20 @@ export interface EmailData {
 
 export const sendEmail = async (emailData: EmailData): Promise<{ success: boolean; message: string }> => {
   try {
-    // Create a mailto URL to open the system's email client
-    const mailtoUrl = `mailto:${emailData.to}?subject=${encodeURIComponent(emailData.subject)}&body=${encodeURIComponent(emailData.body)}`;
-    
-    // Open the email client
-    window.location.href = mailtoUrl;
+    // For a real implementation, we would use a backend API to send emails with attachments
+    // Since we're using mailto: which doesn't support attachments, we'll notify the user
     
     // Store submission data in localStorage
     localStorage.setItem('lastSubmittedForm', JSON.stringify({
-      emailContent: emailData.body
+      emailContent: emailData.body,
+      hasAttachments: emailData.attachments && emailData.attachments.length > 0
     }));
+    
+    // Create a mailto URL to open the system's email client
+    const mailtoUrl = `mailto:${emailData.to}?subject=${encodeURIComponent(emailData.subject)}&body=${encodeURIComponent(emailData.body + (emailData.attachments && emailData.attachments.length > 0 ? "\n\n[Note: You have uploaded supporting documents that will need to be attached manually. They have been saved with your application.]" : ""))}`;
+    
+    // Open the email client
+    window.location.href = mailtoUrl;
     
     return {
       success: true,
@@ -82,6 +86,8 @@ Location:
 
 Qualifications:
 ${formData.qualifications || 'None provided'}
+
+Documents Attached: ${formData.idDocument ? '✓ ID Document, ' : ''}${formData.proofOfAddress ? '✓ Proof of Address, ' : ''}${formData.cvDocument ? '✓ CV, ' : ''}${formData.otherDocument ? '✓ Other Document' : ''}
 
 Submission Date: ${new Date().toLocaleString()}
 `;

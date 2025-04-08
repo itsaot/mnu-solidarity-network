@@ -5,20 +5,19 @@ import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "@/hooks/use-toast";
-import { sendEmail, formatAffiliationEmailBody } from "@/services/emailService";
+import { sendEmail, formatAffiliationEmailBody, validateSAID, extractAgeFromSAID } from "@/services/emailService";
 import { savePendingSubmission } from "@/services/pendingSubmissions";
 import PendingSubmissionsManager from "@/components/PendingSubmissionsManager";
 
 const formSchema = z.object({
   name: z.string().min(2, { message: "Name must be at least 2 characters" }),
   surname: z.string().min(2, { message: "Surname must be at least 2 characters" }),
-  age: z.string().refine((val) => !isNaN(parseInt(val)) && parseInt(val) >= 18, {
-    message: "Age must be a number and at least 18",
+  idNumber: z.string().refine(validateSAID, {
+    message: "Please enter a valid 13-digit South African ID number",
   }),
   gender: z.string().min(1, { message: "Please select your gender" }),
   sector: z.string().min(1, { message: "Please select your sector" }),
@@ -27,7 +26,7 @@ const formSchema = z.object({
   province: z.string().min(2, { message: "Please select your province" }),
   municipality: z.string().min(2, { message: "Please select your municipality" }),
   ward: z.string().min(1, { message: "Ward must be at least 1 character" }),
-  qualifications: z.string(),
+  qualifications: z.string().min(1, { message: "Please select your highest qualification" }),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -40,7 +39,7 @@ const AffiliationForm = () => {
     defaultValues: {
       name: "",
       surname: "",
-      age: "",
+      idNumber: "",
       gender: "",
       sector: "",
       disability: "No",
@@ -75,24 +74,23 @@ const AffiliationForm = () => {
       };
       
       toast({
-        title: "Submitting your application...",
-        description: "Please wait while we process your submission.",
+        title: "Opening email client...",
+        description: "Please wait while we prepare your submission.",
       });
       
       const result = await sendEmail(emailData);
       
       if (result.success) {
         toast({
-          title: "Application submitted successfully!",
-          description: "We'll contact you soon. A copy has been sent to mkhontonationalunion@gmail.com",
+          title: "Email client opened!",
+          description: "Please review and send the email with your application details.",
         });
-        form.reset();
       } else {
         // Save submission for later retry
         savePendingSubmission(data);
         toast({
           variant: "destructive",
-          title: "Could not send your application",
+          title: "Could not open email client",
           description: "Your submission has been saved locally and will be sent automatically when connection is restored.",
         });
       }
@@ -118,6 +116,20 @@ const AffiliationForm = () => {
     "North West", 
     "Northern Cape", 
     "Western Cape"
+  ];
+
+  const qualificationOptions = [
+    "Below Matric",
+    "Matric",
+    "Higher Certificate",
+    "Diploma",
+    "Advanced Diploma",
+    "Bachelor's Degree",
+    "Honours Degree",
+    "Master's Degree",
+    "Doctoral Degree",
+    "Professional Qualification",
+    "Other"
   ];
 
   const nationalities = [
@@ -268,15 +280,19 @@ const AffiliationForm = () => {
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Age and gender fields */}
+            {/* ID Number and gender fields */}
             <FormField
               control={form.control}
-              name="age"
+              name="idNumber"
               render={({ field }) => (
                 <FormItem>
-                  <FormLabel>Age</FormLabel>
+                  <FormLabel>South African ID Number</FormLabel>
                   <FormControl>
-                    <Input placeholder="Your age" type="number" min="18" {...field} />
+                    <Input 
+                      placeholder="13-digit ID number" 
+                      maxLength={13} 
+                      {...field} 
+                    />
                   </FormControl>
                   <FormMessage />
                 </FormItem>
@@ -378,7 +394,7 @@ const AffiliationForm = () => {
             />
           </div>
           
-          {/* Nationality field - converted to dropdown */}
+          {/* Nationality field - dropdown */}
           <FormField
             control={form.control}
             name="nationality"
@@ -427,7 +443,7 @@ const AffiliationForm = () => {
               )}
             />
             
-            {/* Municipality field - converted to dropdown */}
+            {/* Municipality field - dropdown */}
             <FormField
               control={form.control}
               name="municipality"
@@ -477,20 +493,27 @@ const AffiliationForm = () => {
             )}
           />
           
-          {/* Qualifications field */}
+          {/* Qualifications field - converted to dropdown */}
           <FormField
             control={form.control}
             name="qualifications"
             render={({ field }) => (
               <FormItem>
-                <FormLabel>Qualifications (Optional)</FormLabel>
-                <FormControl>
-                  <Textarea 
-                    placeholder="List your qualifications and experience" 
-                    className="min-h-[100px]"
-                    {...field} 
-                  />
-                </FormControl>
+                <FormLabel>Highest Qualification</FormLabel>
+                <Select onValueChange={field.onChange} value={field.value}>
+                  <FormControl>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select highest qualification" />
+                    </SelectTrigger>
+                  </FormControl>
+                  <SelectContent>
+                    {qualificationOptions.map((qualification) => (
+                      <SelectItem key={qualification} value={qualification}>
+                        {qualification}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
                 <FormMessage />
               </FormItem>
             )}

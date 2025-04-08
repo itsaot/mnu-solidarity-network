@@ -19,8 +19,8 @@ const AffiliatePage = () => {
             of uMkhonto Wesizwe.
           </p>
           <div className="text-center max-w-2xl mx-auto mb-6 text-amber-700 text-sm font-medium animate-fade-in bg-amber-50 p-3 rounded-md border border-amber-200" style={{animationDelay: "0.3s"}}>
-            <p>Note: This form is currently in development mode. For production use, a server-side implementation would be required for sending emails.</p>
-            <p className="mt-2">Your submission will be processed but may not send actual emails until server integration is complete.</p>
+            <p>Note: This form will open your default email application to complete the submission.</p>
+            <p className="mt-2">Please review the email content before sending it to MNU leadership.</p>
           </div>
           <div className="text-center max-w-2xl mx-auto mb-12 text-green-600 text-sm font-medium animate-fade-in bg-green-50 p-3 rounded-md border border-green-200" style={{animationDelay: "0.3s"}}>
             Your submission will be sent directly to MNU leadership via email at mkhontonationalunion@gmail.com

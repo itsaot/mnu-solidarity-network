@@ -24,7 +24,7 @@ const JoinBanner = () => {
                 Become a Member
               </Link>
             </Button>
-            <Button asChild size="lg" variant="outline" className="border-white text-white hover:bg-white/10">
+            <Button asChild size="lg" variant="outline" className="bg-white text-mnu-green border-white hover:bg-white/90">
               <Link to="/contact">
                 Contact Our Leadership
               </Link>

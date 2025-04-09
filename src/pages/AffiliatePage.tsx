@@ -3,6 +3,8 @@ import React from 'react';
 import Navigation from '../components/Navigation';
 import Footer from '../components/Footer';
 import AffiliationForm from '../components/AffiliationForm';
+import { AlertCircle } from 'lucide-react';
+import { Alert, AlertTitle, AlertDescription } from "@/components/ui/alert";
 
 const AffiliatePage = () => {
   return (
@@ -18,6 +20,21 @@ const AffiliatePage = () => {
             fighting for the rights and dignity of all people, continuing the proud legacy 
             of uMkhonto Wesizwe.
           </p>
+          
+          <Alert className="max-w-2xl mx-auto mb-6 animate-fade-in border-green-200" style={{animationDelay: "0.25s"}}>
+            <AlertCircle className="h-5 w-5 text-green-700" />
+            <AlertTitle className="text-green-700 font-semibold">Payment Required</AlertTitle>
+            <AlertDescription className="text-green-700">
+              <p className="mb-2">Please send proof of payment with your application.</p>
+              <p className="font-medium">Banking Details:</p>
+              <ul className="list-disc pl-5 mt-1 space-y-1">
+                <li>Account Number: <span className="font-medium">63147152374</span></li>
+                <li>Bank: <span className="font-medium">FNB</span></li>
+                <li>Branch Code: <span className="font-medium">220825</span></li>
+              </ul>
+            </AlertDescription>
+          </Alert>
+          
           <div className="text-center max-w-2xl mx-auto mb-6 text-amber-700 text-sm font-medium animate-fade-in bg-amber-50 p-3 rounded-md border border-amber-200" style={{animationDelay: "0.3s"}}>
             <p>Note: This form will open your default email application to complete the submission.</p>
             <p className="mt-2">Please review the email content before sending it to MNU leadership.</p>

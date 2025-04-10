@@ -24,7 +24,8 @@ const formSchema = z.object({
   disability: z.string().min(1, { message: "Please specify if you have a disability" }),
   nationality: z.string().min(2, { message: "Please select your nationality" }),
   province: z.string().min(2, { message: "Please select your province" }),
-  municipality: z.string().min(2, { message: "Please select your municipality" }),
+  districtMunicipality: z.string().min(2, { message: "Please select your district municipality" }),
+  localMunicipality: z.string().min(1, { message: "Local municipality must be at least 1 character" }),
   ward: z.string().min(1, { message: "Ward must be at least 1 character" }),
   qualifications: z.string().min(1, { message: "Please select your highest qualification" }),
   // Document fields - optional since some users may not have documents ready
@@ -37,7 +38,7 @@ const formSchema = z.object({
 type FormValues = z.infer<typeof formSchema>;
 
 const AffiliationForm = () => {
-  const [municipalities, setMunicipalities] = useState<string[]>([]);
+  const [districtMunicipalities, setDistrictMunicipalities] = useState<string[]>([]);
   const [documents, setDocuments] = useState<{[key: string]: {name: string; data: string}}>({});
   
   const form = useForm<FormValues>({
@@ -49,9 +50,10 @@ const AffiliationForm = () => {
       gender: "",
       sector: "",
       disability: "No",
-      nationality: "South African",
+      nationality: "African",
       province: "",
-      municipality: "",
+      districtMunicipality: "",
+      localMunicipality: "",
       ward: "",
       qualifications: "",
     },
@@ -62,11 +64,13 @@ const AffiliationForm = () => {
   
   useEffect(() => {
     if (selectedProvince) {
-      // Update municipalities based on selected province
-      setMunicipalities(getMunicipalitiesByProvince(selectedProvince));
+      // Update district municipalities based on selected province
+      setDistrictMunicipalities(getDistrictMunicipalitiesByProvince(selectedProvince));
       
-      // Reset municipality selection when province changes
-      form.setValue("municipality", "");
+      // Reset district municipality selection when province changes
+      form.setValue("districtMunicipality", "");
+      // Also reset local municipality
+      form.setValue("localMunicipality", "");
     }
   }, [selectedProvince, form]);
   
@@ -181,7 +185,7 @@ const AffiliationForm = () => {
   ];
 
   const nationalities = [
-    "South African",
+    "African",
     "Afghan",
     "Albanian",
     "Algerian",
@@ -249,9 +253,9 @@ const AffiliationForm = () => {
     "Other"
   ];
 
-  // Function to get municipalities based on province
-  const getMunicipalitiesByProvince = (province: string): string[] => {
-    const municipalitiesMap: { [key: string]: string[] } = {
+  // Function to get district municipalities based on province
+  const getDistrictMunicipalitiesByProvince = (province: string): string[] => {
+    const districtMunicipalitiesMap: { [key: string]: string[] } = {
       "Eastern Cape": [
         "Buffalo City", "Nelson Mandela Bay", "Amathole", "Chris Hani", 
         "Joe Gqabi", "OR Tambo", "Sarah Baartman", "Alfred Nzo"
@@ -285,7 +289,7 @@ const AffiliationForm = () => {
       ]
     };
     
-    return municipalitiesMap[province] || [];
+    return districtMunicipalitiesMap[province] || [];
   };
 
   return (
@@ -528,35 +532,52 @@ const AffiliationForm = () => {
                 )}
               />
               
-              {/* Municipality field - dropdown */}
+              {/* District Municipality field - dropdown */}
               <FormField
                 control={form.control}
-                name="municipality"
+                name="districtMunicipality"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Local Municipality</FormLabel>
+                    <FormLabel>District Municipality</FormLabel>
                     <Select 
                       onValueChange={field.onChange} 
                       value={field.value}
-                      disabled={municipalities.length === 0}
+                      disabled={districtMunicipalities.length === 0}
                     >
                       <FormControl>
                         <SelectTrigger>
                           <SelectValue placeholder={
                             selectedProvince 
-                              ? "Select municipality" 
+                              ? "Select district municipality" 
                               : "Select province first"
                           } />
                         </SelectTrigger>
                       </FormControl>
                       <SelectContent>
-                        {municipalities.map((municipality) => (
+                        {districtMunicipalities.map((municipality) => (
                           <SelectItem key={municipality} value={municipality}>
                             {municipality}
                           </SelectItem>
                         ))}
                       </SelectContent>
                     </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            </div>
+            
+            {/* Local Municipality field */}
+            <div className="mt-4">
+              <FormField
+                control={form.control}
+                name="localMunicipality"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Local Municipality</FormLabel>
+                    <FormControl>
+                      <Input placeholder="Enter your local municipality" {...field} />
+                    </FormControl>
                     <FormMessage />
                   </FormItem>
                 )}

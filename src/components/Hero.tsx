@@ -9,14 +9,14 @@ const Hero = () => {
       <div className="container mx-auto px-4">
         <div className="max-w-3xl mx-auto text-center animate-fade-in">
           <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold mb-6">
-            <span className="text-mnu-gold">Mkhonto</span> National Union
+            <span className="text-white">Mkhonto</span> National Union
           </h1>
           <p className="text-lg md:text-xl mb-8">
             Uniting workers. Fighting for rights. Building a better future.
           </p>
           <div className="space-x-4 flex flex-wrap justify-center gap-4">
             <Button 
-              className="bg-mnu-gold text-mnu-black hover:bg-mnu-gold/90 hover-scale" 
+              className="bg-white text-mnu-black hover:bg-white/90 hover-scale" 
               size="lg" 
               asChild
             >

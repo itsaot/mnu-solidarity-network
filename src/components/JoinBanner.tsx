@@ -19,7 +19,7 @@ const JoinBanner = () => {
             true democracy. Our strength comes from the people - join us today!
           </p>
           <div className="flex flex-wrap gap-4 justify-center animate-fade-in" style={{animationDelay: "0.3s"}}>
-            <Button asChild size="lg" className="bg-mnu-gold text-mnu-black hover:bg-mnu-gold/90">
+            <Button asChild size="lg" className="bg-white text-mnu-black hover:bg-white/90">
               <Link to="/affiliate">
                 Become a Member
               </Link>

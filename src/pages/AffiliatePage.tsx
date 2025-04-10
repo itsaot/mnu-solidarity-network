@@ -23,7 +23,7 @@ const AffiliatePage = () => {
           
           <Alert className="max-w-2xl mx-auto mb-6 animate-fade-in border-green-200" style={{animationDelay: "0.25s"}}>
             <AlertCircle className="h-5 w-5 text-green-700" />
-            <AlertTitle className="text-green-700 font-semibold">Payment Required</AlertTitle>
+            <AlertTitle className="text-green-700 font-semibold">Payment Required - R50 Fee</AlertTitle>
             <AlertDescription className="text-green-700">
               <p className="mb-2">Please send proof of payment with your application.</p>
               <p className="font-medium">Banking Details:</p>

@@ -59,6 +59,17 @@ const Footer = () => {
         
         <div className="border-t border-gray-700 mt-8 pt-6 text-center text-sm text-gray-400">
           <p>&copy; {new Date().getFullYear()} Mkhonto National Union. All rights reserved.</p>
+          <p className="mt-2">
+            Developed and maintained by{' '}
+            <a 
+              href="https://smzobosheportfolio.vercel.app/" 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="hover-link text-white"
+            >
+              S Mzoboshe
+            </a>
+          </p>
         </div>
       </div>
     </footer>
